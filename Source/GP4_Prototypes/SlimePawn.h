@@ -15,9 +15,26 @@ public:
 	// Sets default values for this pawn's properties
 	ASlimePawn();
 
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		USceneComponent* root;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		USceneComponent* cameraHolder;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class USpringArmComponent* cameraArm;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class UCameraComponent* cameraComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		class UCameraDriverComp* cameraDriver;
 
 public:	
 	// Called every frame
