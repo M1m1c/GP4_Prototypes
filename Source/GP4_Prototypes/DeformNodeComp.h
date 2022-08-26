@@ -16,10 +16,15 @@ public:
 	// Sets default values for this component's properties
 	UDeformNodeComp();
 
+	void UpdateNodePos(float DeltaTime);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	FVector localStartPos;
+	UPROPERTY(EditDefaultsOnly)
+	float lerpSpeed = 10.f;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

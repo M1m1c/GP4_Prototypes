@@ -33,7 +33,7 @@ void UCameraDriverComp::TickComponent(float DeltaTime, ELevelTick TickType, FAct
 	if (!bInitalized) { return; }
 
 	UpdateCameraRotation(DeltaTime);
-	//UpdateCameraZoom(DeltaTime);
+	UpdateCameraZoom(DeltaTime);
 	
 	UpdateResetCamera(DeltaTime);
 }
@@ -69,11 +69,11 @@ void UCameraDriverComp::UpdateResetCamera(float DeltaTime)
 void UCameraDriverComp::UpdateCameraRotation(float DeltaTime)
 {
 	float VerticalInput = CameraVertical;
-	if (cameraArm->GetComponentRotation().Pitch < -50)
+	if (cameraArm->GetComponentRotation().Pitch < -75)
 	{
 		VerticalInput = FMath::Clamp(VerticalInput, 0.0f, 1.0f);
 	}
-	if (cameraArm->GetComponentRotation().Pitch > -5)
+	if (cameraArm->GetComponentRotation().Pitch > 0)
 	{
 		VerticalInput = FMath::Clamp(VerticalInput, -1.0f, 0.0f);
 	}
@@ -90,19 +90,26 @@ void UCameraDriverComp::UpdateCameraRotation(float DeltaTime)
 
 void UCameraDriverComp::UpdateCameraZoom(float DeltaTime)
 {
-	/*auto velocityChange = owner->GetPropVelocityChangeConstantDec(
+	auto velocityChange = GetPropVelocityChangeConstantDec(
 		DeltaTime,
 		zoomVelocity,
 		zoomAccelerationSpeed,
 		zoomDecelerationSpeed,
-		bZoomAccOrDec);*/
+		bZoomAccOrDec);
 
-	zoomVelocity = FMath::Clamp(zoomVelocity, 0.f, 1.f); //+ velocityChange, 0.f, 1.f);
+	zoomVelocity = FMath::Clamp(zoomVelocity+ velocityChange, 0.f, 1.f);
 	auto zoomChange = (zoomSpeed * zoomVelocity) * DeltaTime;
 	auto newArmLength = FMath::Clamp(cameraArm->TargetArmLength - zoomDirection * zoomChange, minCameraZoom, maxCameraZoom);
 	cameraArm->TargetArmLength = newArmLength;
 }
 
+float UCameraDriverComp::GetPropVelocityChangeConstantDec(float deltaTime, float currentVelocity, float accelSpeed, float decelSpeed, bool changeCondition)
+{
+	auto proportionalDec = -(deltaTime + (deltaTime * (decelSpeed * currentVelocity)));
+	auto deceleration = currentVelocity > .0f ? proportionalDec : -deltaTime;
+	auto velocityChange = (changeCondition ? deltaTime * accelSpeed : deceleration);
+	return velocityChange;
+}
 
 void UCameraDriverComp::ReadCameraHorizontal(float value)
 {

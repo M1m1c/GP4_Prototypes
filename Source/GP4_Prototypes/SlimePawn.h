@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		class UMovementComp* movementComp;
 
+	TArray<class UDeformNodeComp*> deformNodes;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

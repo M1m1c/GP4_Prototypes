@@ -5,6 +5,7 @@
 
 #include "CameraDriverComp.h"
 #include "MovementComp.h"
+#include "DeformNodeComp.h"
 
 #include <Runtime/Engine/Classes/GameFramework/SpringArmComponent.h>
 #include <Runtime/Engine/Classes/Camera/CameraComponent.h>
@@ -40,6 +41,14 @@ void ASlimePawn::BeginPlay()
 	Super::BeginPlay();
 	cameraDriver->Initalize(cameraHolder, cameraArm);
 	movementComp->Initalize(cameraHolder);
+
+	auto arr= GetComponentsByClass(UDeformNodeComp::StaticClass());
+	for (auto item : arr)
+	{
+		auto casted = Cast<UDeformNodeComp>(item);
+		if (!casted) { continue; }
+		deformNodes.Add(casted);
+	}
 }
 
 // Called every frame
@@ -47,6 +56,11 @@ void ASlimePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	movementComp->UpdateMovement(DeltaTime);
+
+	for (auto node : deformNodes)
+	{
+		node->UpdateNodePos(DeltaTime);
+	}
 }
 
 // Called to bind functionality to input

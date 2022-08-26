@@ -23,6 +23,10 @@ public:
 	float GetUpdatedStepSize(float DeltaTime, float speed, float& velocity, float input, bool bAccCondition);
 	float GetVelocity(float DeltaTime, float currentVel, float input, bool bAccCondition);
 	float GetProportionalVelocityChange(float deltaTime, float currentVelocity, float accelSpeed, float decelSpeed, bool changeCondition);
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetMainForce() { return mainForce; }
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -30,21 +34,25 @@ protected:
 	bool bUpdateHoriVelocity = false;
 	float verticalDirection = 0.f;
 	float horizontalDirection = 0.f;
+	FVector currentForward;
+	FVector currentRight;
 
 	AActor* owner;
-	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
-		float velAccelerationSpeed = 0.3f;
+	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "2.0"))
+		float velAccelerationSpeed = 2.f;
 
-	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
-	float velDecelerationSpeed = 0.05f;
+	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "2.0"))
+	float velDecelerationSpeed = 1.f;
 
 	UPROPERTY(EditDefaultsOnly)
-	float maxSpeed = 10.f;
+	float maxSpeed = 20.f;
 
 	float verticalVelocity=0.f;
 	float horizontalVelocity=0.f;
 
 	class USceneComponent* cameraHolder;
+
+	FVector mainForce;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

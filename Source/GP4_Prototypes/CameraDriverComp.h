@@ -33,6 +33,8 @@ public:
 		void UpdateCameraRotation(float DeltaTime);
 	
 		void UpdateCameraZoom(float DeltaTime);
+
+		float GetPropVelocityChangeConstantDec(float deltaTime, float currentVelocity, float accelSpeed, float decelSpeed, bool changeCondition);
 	
 		void UpdateResetCamera(float DeltaTime);
 	

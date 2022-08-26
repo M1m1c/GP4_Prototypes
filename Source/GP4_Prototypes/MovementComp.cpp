@@ -23,19 +23,39 @@ void UMovementComp::Initalize(USceneComponent* cameraPivot)
 
 void UMovementComp::UpdateMovement(float deltaTime)
 {
-	//TODO rotate to face camera direction
-	// apply transform in forward direciton using vert velocity and in right vector usigng hori velocity
+	auto newVertStep = bUpdateVertVelocity ? deltaTime * verticalDirection * velAccelerationSpeed : 0.f;
+	auto newHoriStep = bUpdateHoriVelocity ? deltaTime * horizontalDirection * velAccelerationSpeed : 0.f;
 
-	auto newVertStep = GetUpdatedStepSize(deltaTime, maxSpeed, verticalVelocity, verticalDirection, bUpdateVertVelocity);
-	auto newHoriStep = GetUpdatedStepSize(deltaTime, maxSpeed, horizontalVelocity, horizontalDirection, bUpdateHoriVelocity);
+	auto forwardVelocity = currentForward * newVertStep;
+	auto rightVelocity = currentRight * newHoriStep;
 
-	auto location = owner->GetActorLocation();
+	auto force = forwardVelocity + rightVelocity;
+	//auto cross = FVector::CrossProduct(mainForce.GetSafeNormal(), force.GetSafeNormal());
 
-	auto forwardVelocity = cameraHolder->GetForwardVector() * newVertStep;
-	auto rightVelocity = cameraHolder->GetRightVector() * newHoriStep;
+	mainForce += force;
+	mainForce = mainForce.GetClampedToMaxSize(1.f);
 
 	FHitResult hit;
-	owner->AddActorWorldOffset(forwardVelocity + rightVelocity, true, &hit);
+	owner->AddActorWorldOffset(
+		mainForce.GetSafeNormal() * (FMath::Clamp(mainForce.Size(), 0.f, 1.f) * maxSpeed), 
+		true,
+		&hit);
+
+
+	if (!bUpdateVertVelocity && !bUpdateHoriVelocity)
+	{
+		auto reductionForce = (mainForce.GetSafeNormal() * -1.f) * velDecelerationSpeed * deltaTime;
+		auto resultForce = (reductionForce + mainForce);
+		if (FVector::DotProduct(resultForce.GetSafeNormal(), mainForce.GetSafeNormal()) < 0.f)
+		{
+			mainForce = FVector::ZeroVector;
+		}
+		else 
+		{
+
+			mainForce += reductionForce;
+		}
+	}
 
 }
 
@@ -46,7 +66,8 @@ void UMovementComp::ReadVertical(float value)
 		bUpdateVertVelocity = false;
 		return;
 	}
-	verticalDirection = FMath::Clamp(value, -1.f, 1.f);;
+	verticalDirection = FMath::Clamp(value, -1.f, 1.f);
+	currentForward = cameraHolder->GetForwardVector();
 	bUpdateVertVelocity = true;
 }
 
@@ -57,7 +78,8 @@ void UMovementComp::ReadHorizontal(float value)
 		bUpdateHoriVelocity = false;
 		return;
 	}
-	horizontalDirection = FMath::Clamp(value, -1.f, 1.f);;
+	horizontalDirection = FMath::Clamp(value, -1.f, 1.f);
+	currentRight = cameraHolder->GetRightVector();
 	bUpdateHoriVelocity = true;
 }
 
@@ -76,7 +98,6 @@ float  UMovementComp::GetVelocity(float DeltaTime, float currentVel, float input
 	auto acc = bNegativeInput ? -velAccelerationSpeed : velAccelerationSpeed;
 	auto dec = bNegativeVelocity ? velDecelerationSpeed : -velDecelerationSpeed;
 
-	//auto velocityChange = GetLinearVelocityChange(DeltaTime, acc, dec, bAccCondition);
 	auto velocityChange = GetProportionalVelocityChange(
 		DeltaTime,
 		currentVel,
