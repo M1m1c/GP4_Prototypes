@@ -36,6 +36,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		class UCameraDriverComp* cameraDriver;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		class UMovementComp* movementComp;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

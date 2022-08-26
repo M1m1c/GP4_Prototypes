@@ -4,6 +4,7 @@
 #include "SlimePawn.h"
 
 #include "CameraDriverComp.h"
+#include "MovementComp.h"
 
 #include <Runtime/Engine/Classes/GameFramework/SpringArmComponent.h>
 #include <Runtime/Engine/Classes/Camera/CameraComponent.h>
@@ -30,7 +31,7 @@ ASlimePawn::ASlimePawn()
 	cameraComp->SetupAttachment(cameraArm, USpringArmComponent::SocketName);
 
 	cameraDriver = CreateDefaultSubobject<UCameraDriverComp>(TEXT("CameraDriver"));
-
+	movementComp = CreateDefaultSubobject<UMovementComp>(TEXT("MovementComp"));
 }
 
 // Called when the game starts or when spawned
@@ -38,13 +39,14 @@ void ASlimePawn::BeginPlay()
 {
 	Super::BeginPlay();
 	cameraDriver->Initalize(cameraHolder, cameraArm);
+	movementComp->Initalize(cameraHolder);
 }
 
 // Called every frame
 void ASlimePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	movementComp->UpdateMovement(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -54,6 +56,9 @@ void ASlimePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 	InputComponent->BindAxis("CameraHorizontal", cameraDriver, &UCameraDriverComp::ReadCameraHorizontal);
 	InputComponent->BindAxis("CameraVertical", cameraDriver, &UCameraDriverComp::ReadCameraVertical);
-	//InputComponent->BindAxis("CameraZoom", cameraDriver, &UCameraDriverComp::ReadCameraZoom);
+	InputComponent->BindAxis("CameraZoom", cameraDriver, &UCameraDriverComp::ReadCameraZoom);
 	InputComponent->BindAction("FreeCameraLook", IE_Pressed, cameraDriver, &UCameraDriverComp::ToggleCameraFreeLook);
+
+	InputComponent->BindAxis("MoveVertical", movementComp, &UMovementComp::ReadVertical);
+	InputComponent->BindAxis("MoveHorizontal", movementComp, &UMovementComp::ReadHorizontal);
 }
