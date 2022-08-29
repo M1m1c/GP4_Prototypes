@@ -24,7 +24,7 @@ protected:
 
 	FVector localStartPos;
 	UPROPERTY(EditDefaultsOnly)
-	float lerpSpeed = 10.f;
+	float lerpSpeed = 15.f;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

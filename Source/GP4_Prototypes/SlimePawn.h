@@ -22,7 +22,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		USceneComponent* root;
+		class USphereComponent* root;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		USceneComponent* cameraHolder;

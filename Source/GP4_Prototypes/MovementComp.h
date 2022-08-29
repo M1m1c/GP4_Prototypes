@@ -17,6 +17,7 @@ public:
 	UMovementComp();
 	void Initalize(class USceneComponent* cameraPivot);
 	void UpdateMovement(float deltaTime);
+	struct FHitResult AttemptMove();
 	void ReadVertical(float value);
 	void ReadHorizontal(float value);
 	float GetLinearVelocityChange(float deltaTime, float accelSpeed, float decelSpeed, bool changeCondition);

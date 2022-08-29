@@ -7,6 +7,7 @@
 #include "MovementComp.h"
 #include "DeformNodeComp.h"
 
+#include "Components/SphereComponent.h"
 #include <Runtime/Engine/Classes/GameFramework/SpringArmComponent.h>
 #include <Runtime/Engine/Classes/Camera/CameraComponent.h>
 
@@ -17,7 +18,7 @@ ASlimePawn::ASlimePawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	root = CreateDefaultSubobject<USphereComponent>(TEXT("Root"));
 	RootComponent = root;
 
 	cameraHolder = CreateDefaultSubobject<USceneComponent>(TEXT("CameraHolder"));

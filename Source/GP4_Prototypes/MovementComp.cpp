@@ -35,11 +35,34 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	mainForce += force;
 	mainForce = mainForce.GetClampedToMaxSize(1.f);
 
-	FHitResult hit;
-	owner->AddActorWorldOffset(
-		mainForce.GetSafeNormal() * (FMath::Clamp(mainForce.Size(), 0.f, 1.f) * maxSpeed), 
-		true,
-		&hit);
+	float RemainingTime = deltaTime;
+	int Iterations = 0;
+
+	while (RemainingTime > 0.f && ++Iterations < 10)
+	{		
+		auto hit = AttemptMove();
+		auto ownerLocation = owner->GetActorLocation();
+
+		if (hit.bBlockingHit)
+		{
+
+			auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+
+			if (hit.bStartPenetrating)
+			{
+				owner->AddActorWorldOffset(normal2D * (hit.PenetrationDepth + 0.1f));
+			}
+			else
+			{
+				mainForce= FVector::VectorPlaneProject(mainForce, normal2D);
+				RemainingTime -= RemainingTime * hit.Time;
+			}
+		}
+		else
+		{	
+			break;
+		}
+	}
 
 
 	if (!bUpdateVertVelocity && !bUpdateHoriVelocity)
@@ -57,6 +80,16 @@ void UMovementComp::UpdateMovement(float deltaTime)
 		}
 	}
 
+}
+
+FHitResult UMovementComp::AttemptMove()
+{
+	FHitResult hit;
+	owner->AddActorWorldOffset(
+		mainForce.GetSafeNormal() * (FMath::Clamp(mainForce.Size(), 0.f, 1.f) * maxSpeed),
+		true,
+		&hit);
+	return hit;
 }
 
 void UMovementComp::ReadVertical(float value)
