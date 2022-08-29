@@ -30,7 +30,6 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	auto rightVelocity = currentRight * newHoriStep;
 
 	auto force = forwardVelocity + rightVelocity;
-	//auto cross = FVector::CrossProduct(mainForce.GetSafeNormal(), force.GetSafeNormal());
 
 	mainForce += force;
 	mainForce = mainForce.GetClampedToMaxSize(1.f);
@@ -39,13 +38,15 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	int Iterations = 0;
 
 	while (RemainingTime > 0.f && ++Iterations < 10)
-	{		
-		auto hit = AttemptMove();
+	{
+		auto clampedForce = FMath::Clamp(mainForce.Size(), 0.f, 1.f);
+		auto finalForce = mainForce.GetSafeNormal() * (clampedForce * maxSpeed);
+		auto hit = AttemptMove(finalForce);
+
 		auto ownerLocation = owner->GetActorLocation();
 
 		if (hit.bBlockingHit)
 		{
-
 			auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
 
 			if (hit.bStartPenetrating)
@@ -54,12 +55,12 @@ void UMovementComp::UpdateMovement(float deltaTime)
 			}
 			else
 			{
-				mainForce= FVector::VectorPlaneProject(mainForce, normal2D);
+				mainForce = FVector::VectorPlaneProject(mainForce, normal2D);
 				RemainingTime -= RemainingTime * hit.Time;
 			}
 		}
 		else
-		{	
+		{
 			break;
 		}
 	}
@@ -67,28 +68,58 @@ void UMovementComp::UpdateMovement(float deltaTime)
 
 	if (!bUpdateVertVelocity && !bUpdateHoriVelocity)
 	{
-		auto reductionForce = (mainForce.GetSafeNormal() * -1.f) * velDecelerationSpeed * deltaTime;
+		auto decelSpeed = bGrounded ? velDecelerationSpeed : velDecelerationSpeed * 0.25f;
+		auto reductionForce = (mainForce.GetSafeNormal() * -1.f) * decelSpeed * deltaTime;
 		auto resultForce = (reductionForce + mainForce);
 		if (FVector::DotProduct(resultForce.GetSafeNormal(), mainForce.GetSafeNormal()) < 0.f)
 		{
 			mainForce = FVector::ZeroVector;
 		}
-		else 
+		else
 		{
-
 			mainForce += reductionForce;
 		}
 	}
 
+	if (bJumpInputHeld) 
+	{ 
+		if (!FMath::IsNearlyEqual(jumpButtonHoldTimer, 0.15f))
+		{
+			jumpButtonHoldTimer = FMath::Clamp(jumpButtonHoldTimer + (deltaTime * 0.7f), 0.f, 0.15f);
+			jumpTimer += (deltaTime + jumpButtonHoldTimer)*0.2f;
+		}
+	}
+
+	if (IsJumping())
+	{
+		auto gravForce = FVector(0.f, 0.f, -gravity * deltaTime * FMath::Pow(jumpTimer *4.f,2.f));
+		AttemptMove(gravForce);
+		jumpTimer = FMath::Clamp(jumpTimer - deltaTime, 0.f, maxJumpTimer);
+	}
+	else if (!bGrounded)
+	{
+		auto gravForce = FVector(0.f, 0.f, gravity * accumulatedGravAccel * deltaTime);
+		AttemptMove(gravForce);
+		accumulatedGravAccel += deltaTime*5.f;
+	}
+
 }
 
-FHitResult UMovementComp::AttemptMove()
+FHitResult UMovementComp::AttemptMove(FVector forceVector)
 {
 	FHitResult hit;
+
 	owner->AddActorWorldOffset(
-		mainForce.GetSafeNormal() * (FMath::Clamp(mainForce.Size(), 0.f, 1.f) * maxSpeed),
+		forceVector,
 		true,
 		&hit);
+
+	if(hit.bBlockingHit)
+	{ 
+		bGrounded = true; 
+		accumulatedGravAccel = defaultGravityAccel;
+	}
+
 	return hit;
 }
 
@@ -116,6 +147,26 @@ void UMovementComp::ReadHorizontal(float value)
 	bUpdateHoriVelocity = true;
 }
 
+void UMovementComp::InputPressJump()
+{
+	if (bGrounded) 
+	{ 
+		jumpTimer = maxJumpTimer; 
+		bGrounded = false;
+		bJumpInputHeld = true;
+		jumpButtonHoldTimer = 0.f;
+	}
+}
+
+void UMovementComp::InputReleaseJump()
+{
+	bJumpInputHeld = false;
+}
+
+bool UMovementComp::IsJumping() 
+{
+	return !FMath::IsNearlyZero(jumpTimer);
+}
 
 
 float UMovementComp::GetUpdatedStepSize(float DeltaTime, float speed, float& velocity, float input, bool bAccCondition)

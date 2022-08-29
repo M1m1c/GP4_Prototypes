@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 
 #include "SlimePawn.h"
 
@@ -12,11 +10,9 @@
 #include <Runtime/Engine/Classes/Camera/CameraComponent.h>
 
 
-// Sets default values
 ASlimePawn::ASlimePawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+ 	PrimaryActorTick.bCanEverTick = true;
 
 	root = CreateDefaultSubobject<USphereComponent>(TEXT("Root"));
 	RootComponent = root;
@@ -26,9 +22,8 @@ ASlimePawn::ASlimePawn()
 
 	cameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	cameraArm->SetupAttachment(cameraHolder);
-	cameraArm->TargetArmLength = 300.0f; // The camera follows at this distance behind the character
+	cameraArm->TargetArmLength = 400.0f;
 
-	// Create a follow camera
 	cameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	cameraComp->SetupAttachment(cameraArm, USpringArmComponent::SocketName);
 
@@ -36,7 +31,6 @@ ASlimePawn::ASlimePawn()
 	movementComp = CreateDefaultSubobject<UMovementComp>(TEXT("MovementComp"));
 }
 
-// Called when the game starts or when spawned
 void ASlimePawn::BeginPlay()
 {
 	Super::BeginPlay();
@@ -52,7 +46,6 @@ void ASlimePawn::BeginPlay()
 	}
 }
 
-// Called every frame
 void ASlimePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -64,7 +57,6 @@ void ASlimePawn::Tick(float DeltaTime)
 	}
 }
 
-// Called to bind functionality to input
 void ASlimePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -76,4 +68,6 @@ void ASlimePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 	InputComponent->BindAxis("MoveVertical", movementComp, &UMovementComp::ReadVertical);
 	InputComponent->BindAxis("MoveHorizontal", movementComp, &UMovementComp::ReadHorizontal);
+	InputComponent->BindAction("JumpInput", IE_Pressed, movementComp, &UMovementComp::InputPressJump);
+	InputComponent->BindAction("JumpInput", IE_Released, movementComp, &UMovementComp::InputReleaseJump);
 }

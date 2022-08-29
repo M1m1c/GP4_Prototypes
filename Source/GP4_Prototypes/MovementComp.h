@@ -13,13 +13,21 @@ class GP4_PROTOTYPES_API UMovementComp : public UActorComponent
 	GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
+
+	UFUNCTION()
+		void ReadVertical(float value);
+	UFUNCTION()
+		void ReadHorizontal(float value);
+	UFUNCTION()
+		void InputPressJump();
+	UFUNCTION()
+		void InputReleaseJump();
+
 	UMovementComp();
 	void Initalize(class USceneComponent* cameraPivot);
 	void UpdateMovement(float deltaTime);
-	struct FHitResult AttemptMove();
-	void ReadVertical(float value);
-	void ReadHorizontal(float value);
+	struct FHitResult AttemptMove(FVector forceVector);
+	bool IsJumping();
 	float GetLinearVelocityChange(float deltaTime, float accelSpeed, float decelSpeed, bool changeCondition);
 	float GetUpdatedStepSize(float DeltaTime, float speed, float& velocity, float input, bool bAccCondition);
 	float GetVelocity(float DeltaTime, float currentVel, float input, bool bAccCondition);
@@ -31,6 +39,14 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	bool bGrounded = false;
+	float jumpTimer = 0.f;
+	float maxJumpTimer = 0.4f;
+
+	bool bJumpInputHeld = false;
+	float jumpButtonHoldTimer = 0.f;
+
 	bool bUpdateVertVelocity = false;
 	bool bUpdateHoriVelocity = false;
 	float verticalDirection = 0.f;
@@ -50,6 +66,10 @@ protected:
 
 	float verticalVelocity=0.f;
 	float horizontalVelocity=0.f;
+
+	float gravity = -980.f;
+	float accumulatedGravAccel = 1.f;
+	float defaultGravityAccel = 1.f;
 
 	class USceneComponent* cameraHolder;
 
