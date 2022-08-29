@@ -19,6 +19,11 @@ void UMovementComp::Initalize(USceneComponent* cameraPivot)
 	if (!ensure(owner)) { return; }
 	cameraHolder = cameraPivot;
 	if (!ensure(cameraHolder)) { return; }
+
+	navigationPlane = FNavigationPlane(
+		owner->GetActorForwardVector(),
+		owner->GetActorRightVector(),
+		owner->GetActorUpVector());
 }
 
 void UMovementComp::UpdateMovement(float deltaTime)
@@ -26,8 +31,8 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	auto newVertStep = bUpdateVertVelocity ? deltaTime * verticalDirection * velAccelerationSpeed : 0.f;
 	auto newHoriStep = bUpdateHoriVelocity ? deltaTime * horizontalDirection * velAccelerationSpeed : 0.f;
 
-	auto forwardVelocity = currentForward * newVertStep;
-	auto rightVelocity = currentRight * newHoriStep;
+	auto forwardVelocity = FVector::VectorPlaneProject(currentForward, navigationPlane.upVector).GetSafeNormal() * newVertStep;
+	auto rightVelocity = FVector::VectorPlaneProject(currentRight, navigationPlane.upVector).GetSafeNormal() * newHoriStep;
 
 	auto force = forwardVelocity + rightVelocity;
 
@@ -47,15 +52,16 @@ void UMovementComp::UpdateMovement(float deltaTime)
 
 		if (hit.bBlockingHit)
 		{
-			auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+			UpdateNavigationPlane(hit);
+			//navigationPlane.rightVector = navigationPlane.rightVector * -1.f;
 
 			if (hit.bStartPenetrating)
 			{
-				owner->AddActorWorldOffset(normal2D * (hit.PenetrationDepth + 0.1f));
+				owner->AddActorWorldOffset(hit.Normal * (hit.PenetrationDepth + 0.1f));
 			}
 			else
 			{
-				mainForce = FVector::VectorPlaneProject(mainForce, normal2D);
+				mainForce = FVector::VectorPlaneProject(mainForce, hit.Normal);
 				RemainingTime -= RemainingTime * hit.Time;
 			}
 		}
@@ -81,28 +87,93 @@ void UMovementComp::UpdateMovement(float deltaTime)
 		}
 	}
 
-	if (bJumpInputHeld) 
-	{ 
+	if (bJumpInputHeld)
+	{
 		if (!FMath::IsNearlyEqual(jumpButtonHoldTimer, 0.15f))
 		{
 			jumpButtonHoldTimer = FMath::Clamp(jumpButtonHoldTimer + (deltaTime * 0.7f), 0.f, 0.15f);
-			jumpTimer += (deltaTime + jumpButtonHoldTimer)*0.2f;
+			jumpTimer += (deltaTime + jumpButtonHoldTimer) * 0.2f;
 		}
 	}
 
 	if (IsJumping())
 	{
-		auto gravForce = FVector(0.f, 0.f, -gravity * deltaTime * FMath::Pow(jumpTimer *4.f,2.f));
-		AttemptMove(gravForce);
+		auto jumpMagnitude = -gravity * deltaTime * FMath::Pow(jumpTimer * 4.f, 2.f);
+		auto jumpForce = navigationPlane.upVector.GetSafeNormal() * jumpMagnitude;
+		AttemptMove(jumpForce);
 		jumpTimer = FMath::Clamp(jumpTimer - deltaTime, 0.f, maxJumpTimer);
 	}
 	else if (!bGrounded)
 	{
+		if (bShouldResetNavPlane) 
+		{
+			bShouldResetNavPlane = false;
+			navigationPlane = FNavigationPlane(FVector::ForwardVector, FVector::RightVector, FVector::UpVector);
+		}
 		auto gravForce = FVector(0.f, 0.f, gravity * accumulatedGravAccel * deltaTime);
 		AttemptMove(gravForce);
-		accumulatedGravAccel += deltaTime*5.f;
+		accumulatedGravAccel += deltaTime * 5.f;
 	}
 
+	//TODO trace in the opposite of our navplane up to check if we are attached to something
+	TArray<FHitResult> planeDownHits;
+	auto start = owner->GetActorLocation();
+	auto end = start + (-navigationPlane.upVector * 30.f);
+	LineTrace(planeDownHits, start, end);
+
+	/*TArray<FHitResult> forwardHits;
+	end = start + (mainForce.GetSafeNormal() * 10.f);
+	LineTrace(forwardHits, start, end);*/
+
+	end = start + (-FVector::UpVector * 30.f);
+	TArray<FHitResult> zDownHits;
+	LineTrace(zDownHits, start, end);
+
+	if (!CheckTraceHits(planeDownHits,true) && !CheckTraceHits(zDownHits,false))
+	{
+		bGrounded = false;
+	}
+}
+
+void UMovementComp::UpdateNavigationPlane(FHitResult& hit)
+{
+	auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+
+	navigationPlane.upVector = hit.Normal.GetSafeNormal();
+	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
+	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);
+}
+
+bool UMovementComp::CheckTraceHits(TArray<FHitResult>& hits, bool shouldUpdateNavPlane)
+{
+	bool retval = true;
+	if (hits.Num())
+	{
+		int count = 0;
+		for (auto hit : hits)
+		{
+			if (hit.GetActor() && hit.GetActor() != owner) {
+				count++;
+				if(shouldUpdateNavPlane) { UpdateNavigationPlane(hit); }		
+				break;
+			}
+		}
+		if (count == 0) { retval = false; }
+	}
+	return retval;
+}
+
+void UMovementComp::LineTrace(TArray<FHitResult>& OutHits, FVector& start, FVector3d& end)
+{
+	FCollisionShape MyColSphere = FCollisionShape::MakeSphere(10.f);
+	GetWorld()->SweepMultiByChannel(OutHits, start, end, FQuat::Identity, ECC_WorldStatic, MyColSphere);
+	DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0, 1.f);
+
+	for (auto item : OutHits)
+	{
+		if (item.GetActor() == owner) { continue; }
+		DrawDebugSphere(GetWorld(), item.Location, 10.f, 4, FColor::Purple, false, 2.f);
+	}
 }
 
 FHitResult UMovementComp::AttemptMove(FVector forceVector)
@@ -114,9 +185,9 @@ FHitResult UMovementComp::AttemptMove(FVector forceVector)
 		true,
 		&hit);
 
-	if(hit.bBlockingHit)
-	{ 
-		bGrounded = true; 
+	if (hit.bBlockingHit)
+	{
+		bGrounded = true;
 		accumulatedGravAccel = defaultGravityAccel;
 	}
 
@@ -131,7 +202,9 @@ void UMovementComp::ReadVertical(float value)
 		return;
 	}
 	verticalDirection = FMath::Clamp(value, -1.f, 1.f);
-	currentForward = cameraHolder->GetForwardVector();
+	auto dot = FVector::DotProduct(cameraHolder->GetUpVector(), navigationPlane.upVector);
+	UE_LOG(LogTemp, Warning, TEXT("dot %f"), dot);
+	currentForward = dot > -0.2f && dot < 0.2f ? cameraHolder->GetUpVector() : cameraHolder->GetForwardVector();
 	bUpdateVertVelocity = true;
 }
 
@@ -149,9 +222,11 @@ void UMovementComp::ReadHorizontal(float value)
 
 void UMovementComp::InputPressJump()
 {
-	if (bGrounded) 
-	{ 
-		jumpTimer = maxJumpTimer; 
+	if (bGrounded)
+	{
+		jumpTimer = maxJumpTimer;
+		//TODO move groundeed setting to a trace only
+		bShouldResetNavPlane = true;
 		bGrounded = false;
 		bJumpInputHeld = true;
 		jumpButtonHoldTimer = 0.f;
@@ -163,7 +238,7 @@ void UMovementComp::InputReleaseJump()
 	bJumpInputHeld = false;
 }
 
-bool UMovementComp::IsJumping() 
+bool UMovementComp::IsJumping()
 {
 	return !FMath::IsNearlyZero(jumpTimer);
 }

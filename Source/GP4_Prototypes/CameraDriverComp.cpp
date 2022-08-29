@@ -69,14 +69,14 @@ void UCameraDriverComp::UpdateResetCamera(float DeltaTime)
 void UCameraDriverComp::UpdateCameraRotation(float DeltaTime)
 {
 	float VerticalInput = CameraVertical;
-	if (cameraArm->GetComponentRotation().Pitch < -75)
+	/*if (cameraArm->GetComponentRotation().Pitch < -75)
 	{
 		VerticalInput = FMath::Clamp(VerticalInput, 0.0f, 1.0f);
 	}
 	if (cameraArm->GetComponentRotation().Pitch > 0)
 	{
 		VerticalInput = FMath::Clamp(VerticalInput, -1.0f, 0.0f);
-	}
+	}*/
 	
 	FRotator newArmRotation = FRotator(VerticalInput * CameraRotationSpeed, 0.f, 0.f) * DeltaTime;
 	FQuat quatArmRotation = FQuat(newArmRotation);

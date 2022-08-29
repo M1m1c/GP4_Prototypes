@@ -35,7 +35,7 @@ void ASlimePawn::BeginPlay()
 {
 	Super::BeginPlay();
 	cameraDriver->Initalize(cameraHolder, cameraArm);
-	movementComp->Initalize(cameraHolder);
+	movementComp->Initalize(cameraComp);
 
 	auto arr= GetComponentsByClass(UDeformNodeComp::StaticClass());
 	for (auto item : arr)

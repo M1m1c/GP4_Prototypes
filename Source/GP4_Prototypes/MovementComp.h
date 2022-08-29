@@ -7,6 +7,29 @@
 #include "MovementComp.generated.h"
 
 
+USTRUCT(Blueprintable)
+struct FNavigationPlane
+{
+	GENERATED_BODY()
+public:
+	FNavigationPlane() {};
+	FNavigationPlane(FVector forward, FVector right, FVector up )
+	{
+		forwardVector = forward;
+		rightVector = right;
+		upVector = up;
+	};
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector upVector = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector rightVector = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector forwardVector = FVector::ZeroVector;
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GP4_PROTOTYPES_API UMovementComp : public UActorComponent
 {
@@ -26,6 +49,9 @@ public:
 	UMovementComp();
 	void Initalize(class USceneComponent* cameraPivot);
 	void UpdateMovement(float deltaTime);
+	void UpdateNavigationPlane(FHitResult& hit);
+	bool CheckTraceHits(TArray<FHitResult>& hits, bool shouldUpdateNavPlane);
+	void LineTrace(TArray<FHitResult>& OutHits, FVector& start, FVector3d& end);
 	struct FHitResult AttemptMove(FVector forceVector);
 	bool IsJumping();
 	float GetLinearVelocityChange(float deltaTime, float accelSpeed, float decelSpeed, bool changeCondition);
@@ -40,6 +66,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	bool bShouldResetNavPlane = false;
 	bool bGrounded = false;
 	float jumpTimer = 0.f;
 	float maxJumpTimer = 0.4f;
@@ -53,6 +80,8 @@ protected:
 	float horizontalDirection = 0.f;
 	FVector currentForward;
 	FVector currentRight;
+	UPROPERTY(BlueprintReadOnly)
+	FNavigationPlane navigationPlane;
 
 	AActor* owner;
 	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0.0", ClampMax = "2.0", UIMin = "0.0", UIMax = "2.0"))
