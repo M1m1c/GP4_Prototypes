@@ -30,12 +30,12 @@ void UCameraDriverComp::Initalize(USceneComponent* holder, USpringArmComponent* 
 void UCameraDriverComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!bInitalized) { return; }
+	/*if (!bInitalized) { return; }
 
 	UpdateCameraRotation(DeltaTime);
 	UpdateCameraZoom(DeltaTime);
 	
-	UpdateResetCamera(DeltaTime);
+	UpdateResetCamera(DeltaTime);*/
 }
 
 void UCameraDriverComp::UpdateResetCamera(float DeltaTime)
@@ -109,6 +109,16 @@ float UCameraDriverComp::GetPropVelocityChangeConstantDec(float deltaTime, float
 	auto deceleration = currentVelocity > .0f ? proportionalDec : -deltaTime;
 	auto velocityChange = (changeCondition ? deltaTime * accelSpeed : deceleration);
 	return velocityChange;
+}
+
+void UCameraDriverComp::UpdateCamera(const float deltaTime)
+{
+	if (!bInitalized) { return; }
+
+	UpdateCameraRotation(deltaTime);
+	UpdateCameraZoom(deltaTime);
+
+	UpdateResetCamera(deltaTime);
 }
 
 void UCameraDriverComp::ReadCameraHorizontal(float value)

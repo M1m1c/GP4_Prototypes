@@ -19,6 +19,8 @@ public:
 	
 		bool bInitalized = false;
 	
+		void UpdateCamera(const float deltaTime);
+
 		void ReadCameraHorizontal(float value);
 	
 		void ReadCameraVertical(float value);

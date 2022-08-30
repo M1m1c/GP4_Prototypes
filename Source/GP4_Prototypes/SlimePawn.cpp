@@ -53,7 +53,7 @@ void ASlimePawn::FixedTick()
 	OnFixedTick(fixedTickDeltaTime);
 
 	movementComp->UpdateMovement(fixedTickDeltaTime);	
-
+	cameraDriver->UpdateCamera(fixedTickDeltaTime);
 	for (auto node : deformNodes)
 	{
 		node->UpdateNodePos(fixedTickDeltaTime);
