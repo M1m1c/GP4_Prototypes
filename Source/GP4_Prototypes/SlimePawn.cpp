@@ -44,17 +44,32 @@ void ASlimePawn::BeginPlay()
 		if (!casted) { continue; }
 		deformNodes.Add(casted);
 	}
+
+	GetWorldTimerManager().SetTimer(FixedTickHandle, this, &ASlimePawn::FixedTick, fixedTickDeltaTime, true, 0.0f);
+}
+
+void ASlimePawn::FixedTick()
+{
+	OnFixedTick(fixedTickDeltaTime);
+
+	movementComp->UpdateMovement(fixedTickDeltaTime);	
+
+	for (auto node : deformNodes)
+	{
+		node->UpdateNodePos(fixedTickDeltaTime);
+	}
 }
 
 void ASlimePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	movementComp->UpdateMovement(DeltaTime);
+	/*movementComp->UpdateMovement(DeltaTime);
 
 	for (auto node : deformNodes)
 	{
 		node->UpdateNodePos(DeltaTime);
-	}
+	}*/
+	
 }
 
 void ASlimePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

@@ -16,10 +16,15 @@ public:
 	ASlimePawn();
 
 
+	UFUNCTION(BlueprintImplementableEvent)
+		void OnFixedTick(const float deltaTime);
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	void FixedTick();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		class USphereComponent* root;
@@ -40,6 +45,9 @@ protected:
 		class UMovementComp* movementComp;
 
 	TArray<class UDeformNodeComp*> deformNodes;
+
+	FTimerHandle FixedTickHandle;
+	const float fixedTickDeltaTime=0.016f;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

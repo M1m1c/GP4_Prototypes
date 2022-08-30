@@ -98,6 +98,7 @@ void UMovementComp::UpdateMovement(float deltaTime)
 
 	if (IsJumping())
 	{
+		//TODO Trace in jump direction to see if we can stick to something
 		auto jumpMagnitude = -gravity * deltaTime * FMath::Pow(jumpTimer * 4.f, 2.f);
 		auto jumpForce = navigationPlane.upVector.GetSafeNormal() * jumpMagnitude;
 		AttemptMove(jumpForce);
@@ -138,7 +139,6 @@ void UMovementComp::UpdateMovement(float deltaTime)
 void UMovementComp::UpdateNavigationPlane(FHitResult& hit)
 {
 	auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
-
 	navigationPlane.upVector = hit.Normal.GetSafeNormal();
 	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
 	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);
