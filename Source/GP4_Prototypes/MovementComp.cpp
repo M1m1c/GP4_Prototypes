@@ -52,7 +52,7 @@ void UMovementComp::UpdateMovement(float deltaTime)
 
 		if (hit.bBlockingHit)
 		{
-			UpdateNavigationPlane(hit);
+			//UpdateNavigationPlane(hit);
 			//navigationPlane.rightVector = navigationPlane.rightVector * -1.f;
 
 			if (hit.bStartPenetrating)
@@ -96,52 +96,91 @@ void UMovementComp::UpdateMovement(float deltaTime)
 		}
 	}
 
+
 	if (IsJumping())
 	{
 		//TODO Trace in jump direction to see if we can stick to something
+
 		auto jumpMagnitude = -gravity * deltaTime * FMath::Pow(jumpTimer * 4.f, 2.f);
-		auto jumpForce = navigationPlane.upVector.GetSafeNormal() * jumpMagnitude;
+
+		jumpAddative = !IsNavPlaneSemiHorizontal() ?
+			cameraHolder->GetForwardVector() : FVector::ZeroVector;
+
+		jumpForce = (navigationPlane.upVector.GetSafeNormal() + jumpAddative) * jumpMagnitude;
 		AttemptMove(jumpForce);
 		jumpTimer = FMath::Clamp(jumpTimer - deltaTime, 0.f, maxJumpTimer);
 	}
 	else if (!bGrounded)
 	{
+		jumpForce = FVector::ZeroVector;
 		if (bShouldResetNavPlane) 
 		{
 			bShouldResetNavPlane = false;
 			navigationPlane = FNavigationPlane(FVector::ForwardVector, FVector::RightVector, FVector::UpVector);
 		}
-		auto gravForce = FVector(0.f, 0.f, gravity * accumulatedGravAccel * deltaTime);
+		gravForce = FVector(0.f, 0.f, gravity * accumulatedGravAccel * deltaTime);
 		AttemptMove(gravForce);
 		accumulatedGravAccel += deltaTime * 5.f;
 	}
+	else 
+	{
+		gravForce = FVector::ZeroVector;
+		jumpAddative = FVector::ZeroVector;
+	}
 
-	//TODO trace in the opposite of our navplane up to check if we are attached to something
 	TArray<FHitResult> planeDownHits;
 	auto start = owner->GetActorLocation();
-	auto end = start + (-navigationPlane.upVector * 30.f);
+	auto end = start + (-navigationPlane.upVector * 27.f);
 	LineTrace(planeDownHits, start, end);
 
-	/*TArray<FHitResult> forwardHits;
-	end = start + (mainForce.GetSafeNormal() * 10.f);
-	LineTrace(forwardHits, start, end);*/
+	TArray<FHitResult> forwardHits;
+	end = start + 
+		(
+			(mainForce.GetSafeNormal() + 
+				jumpForce.GetSafeNormal() +
+				gravForce.GetSafeNormal() + 
+				jumpAddative.GetSafeNormal()
+				) * 40.f);
+	LineTrace(forwardHits, start, end);
 
-	end = start + (-FVector::UpVector * 30.f);
+	end = start + (-FVector::UpVector * 27.f);
 	TArray<FHitResult> zDownHits;
 	LineTrace(zDownHits, start, end);
 
-	if (!CheckTraceHits(planeDownHits,true) && !CheckTraceHits(zDownHits,false))
+	if (!CheckTraceHits(forwardHits, true) && !CheckTraceHits(zDownHits, IsNavPlaneSemiHorizontal()) && !CheckTraceHits(planeDownHits,true))
 	{
 		bGrounded = false;
+	}
+	else
+	{
+		jumpTimer = 0.0f;
+		bGrounded = true;
 	}
 }
 
 void UMovementComp::UpdateNavigationPlane(FHitResult& hit)
 {
-	auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+	auto dot = FVector::DotProduct(hit.Normal, FVector::UpVector);
+	UE_LOG(LogTemp, Warning, TEXT("dot %f"), dot);
+
+	if (dot > 0.9f) 
+	{
+		navigationPlane = FNavigationPlane(
+			FVector::ForwardVector,
+			FVector::RightVector,
+			FVector::UpVector);
+	}
+	else
+	{
+		auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
 	navigationPlane.upVector = hit.Normal.GetSafeNormal();
 	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
 	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);
+	}
+	/*auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+	navigationPlane.upVector = hit.Normal.GetSafeNormal();
+	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
+	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);*/
 }
 
 bool UMovementComp::CheckTraceHits(TArray<FHitResult>& hits, bool shouldUpdateNavPlane)
@@ -187,7 +226,7 @@ FHitResult UMovementComp::AttemptMove(FVector forceVector)
 
 	if (hit.bBlockingHit)
 	{
-		bGrounded = true;
+		//bGrounded = true;
 		accumulatedGravAccel = defaultGravityAccel;
 	}
 
@@ -203,7 +242,6 @@ void UMovementComp::ReadVertical(float value)
 	}
 	verticalDirection = FMath::Clamp(value, -1.f, 1.f);
 	auto dot = FVector::DotProduct(cameraHolder->GetUpVector(), navigationPlane.upVector);
-	UE_LOG(LogTemp, Warning, TEXT("dot %f"), dot);
 	currentForward = dot > -0.2f && dot < 0.2f ? cameraHolder->GetUpVector() : cameraHolder->GetForwardVector();
 	bUpdateVertVelocity = true;
 }
@@ -227,7 +265,7 @@ void UMovementComp::InputPressJump()
 		jumpTimer = maxJumpTimer;
 		//TODO move groundeed setting to a trace only
 		bShouldResetNavPlane = true;
-		bGrounded = false;
+		//bGrounded = false;
 		bJumpInputHeld = true;
 		jumpButtonHoldTimer = 0.f;
 	}
@@ -241,6 +279,20 @@ void UMovementComp::InputReleaseJump()
 bool UMovementComp::IsJumping()
 {
 	return !FMath::IsNearlyZero(jumpTimer);
+}
+
+bool UMovementComp::IsNavPlaneDefault()
+{
+	auto b1 = navigationPlane.forwardVector == FVector::UpVector;
+	auto b2 = navigationPlane.rightVector == FVector::RightVector;
+	auto b3 = navigationPlane.upVector == FVector::UpVector;
+	return  b1 && b2 && b3;
+}
+
+bool UMovementComp::IsNavPlaneSemiHorizontal()
+{
+	auto dot = FVector::DotProduct(navigationPlane.upVector, FVector::UpVector);
+	return dot>0.5f;
 }
 
 

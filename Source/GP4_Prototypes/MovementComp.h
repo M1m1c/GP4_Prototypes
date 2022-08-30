@@ -30,6 +30,10 @@ public:
 	FVector forwardVector = FVector::ZeroVector;
 };
 
+
+//TODO fix traveling over outside corners,
+// fix badn navplane generation when landing on ground.
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GP4_PROTOTYPES_API UMovementComp : public UActorComponent
 {
@@ -54,6 +58,8 @@ public:
 	void LineTrace(TArray<FHitResult>& OutHits, FVector& start, FVector3d& end);
 	struct FHitResult AttemptMove(FVector forceVector);
 	bool IsJumping();
+	bool IsNavPlaneDefault();
+	bool IsNavPlaneSemiHorizontal();
 	float GetLinearVelocityChange(float deltaTime, float accelSpeed, float decelSpeed, bool changeCondition);
 	float GetUpdatedStepSize(float DeltaTime, float speed, float& velocity, float input, bool bAccCondition);
 	float GetVelocity(float DeltaTime, float currentVel, float input, bool bAccCondition);
@@ -103,6 +109,9 @@ protected:
 	class USceneComponent* cameraHolder;
 
 	FVector mainForce;
+	FVector jumpForce;
+	FVector gravForce;
+	FVector jumpAddative;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
