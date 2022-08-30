@@ -113,7 +113,7 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	else if (!bGrounded)
 	{
 		jumpForce = FVector::ZeroVector;
-		if (bShouldResetNavPlane) 
+		if (bShouldResetNavPlane)
 		{
 			bShouldResetNavPlane = false;
 			navigationPlane = FNavigationPlane(FVector::ForwardVector, FVector::RightVector, FVector::UpVector);
@@ -122,7 +122,7 @@ void UMovementComp::UpdateMovement(float deltaTime)
 		AttemptMove(gravForce);
 		accumulatedGravAccel += deltaTime * 5.f;
 	}
-	else 
+	else
 	{
 		gravForce = FVector::ZeroVector;
 		jumpAddative = FVector::ZeroVector;
@@ -134,11 +134,11 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	LineTrace(planeDownHits, start, end);
 
 	TArray<FHitResult> forwardHits;
-	end = start + 
+	end = start +
 		(
-			(mainForce.GetSafeNormal() + 
+			(mainForce.GetSafeNormal() +
 				jumpForce.GetSafeNormal() +
-				gravForce.GetSafeNormal() + 
+				gravForce.GetSafeNormal() +
 				jumpAddative.GetSafeNormal()
 				) * 40.f);
 	LineTrace(forwardHits, start, end);
@@ -147,7 +147,7 @@ void UMovementComp::UpdateMovement(float deltaTime)
 	TArray<FHitResult> zDownHits;
 	LineTrace(zDownHits, start, end);
 
-	if (!CheckTraceHits(forwardHits, true) && !CheckTraceHits(zDownHits, IsNavPlaneSemiHorizontal()) && !CheckTraceHits(planeDownHits,true))
+	if (!CheckTraceHits(forwardHits, true) && !CheckTraceHits(zDownHits, IsNavPlaneSemiHorizontal()) && !CheckTraceHits(planeDownHits, true))
 	{
 		bGrounded = false;
 	}
@@ -160,10 +160,10 @@ void UMovementComp::UpdateMovement(float deltaTime)
 
 void UMovementComp::UpdateNavigationPlane(FHitResult& hit)
 {
-	auto dot = FVector::DotProduct(hit.Normal, FVector::UpVector);
+	/*auto dot = FVector::DotProduct(hit.Normal, FVector::UpVector);
 	UE_LOG(LogTemp, Warning, TEXT("dot %f"), dot);
 
-	if (dot > 0.9f) 
+	if (dot > 0.9f)
 	{
 		navigationPlane = FNavigationPlane(
 			FVector::ForwardVector,
@@ -173,14 +173,14 @@ void UMovementComp::UpdateNavigationPlane(FHitResult& hit)
 	else
 	{
 		auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
+		navigationPlane.upVector = hit.Normal.GetSafeNormal();
+		navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
+		navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);
+	}*/
+	auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
 	navigationPlane.upVector = hit.Normal.GetSafeNormal();
 	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
 	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);
-	}
-	/*auto normal2D = FVector(hit.Normal.X, hit.Normal.Y, 0.f);
-	navigationPlane.upVector = hit.Normal.GetSafeNormal();
-	navigationPlane.rightVector = FVector::VectorPlaneProject(mainForce, normal2D);
-	navigationPlane.forwardVector = FVector::CrossProduct(navigationPlane.upVector, navigationPlane.rightVector);*/
 }
 
 bool UMovementComp::CheckTraceHits(TArray<FHitResult>& hits, bool shouldUpdateNavPlane)
@@ -193,7 +193,7 @@ bool UMovementComp::CheckTraceHits(TArray<FHitResult>& hits, bool shouldUpdateNa
 		{
 			if (hit.GetActor() && hit.GetActor() != owner) {
 				count++;
-				if(shouldUpdateNavPlane) { UpdateNavigationPlane(hit); }		
+				if (shouldUpdateNavPlane) { UpdateNavigationPlane(hit); }
 				break;
 			}
 		}
@@ -292,7 +292,7 @@ bool UMovementComp::IsNavPlaneDefault()
 bool UMovementComp::IsNavPlaneSemiHorizontal()
 {
 	auto dot = FVector::DotProduct(navigationPlane.upVector, FVector::UpVector);
-	return dot>0.5f;
+	return dot > 0.5f;
 }
 
 
